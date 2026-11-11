@@ -1,0 +1,16 @@
+{
+  "name": "hub-dados-js",
+  "version": "1.0.0",
+  "description": "Unificador de planilhas que roda 100% no navegador, sem dependências e sem etapa de build (HTML + CSS + JavaScript puro).",
+  "private": true,
+  "license": "MIT",
+  "author": "Giovanne Zaniboni",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node tests/node/run.js && node tests/run-browser.js",
+    "test:node": "node tests/node/run.js",
+    "test:browser": "node tests/run-browser.js"
+  }
+}

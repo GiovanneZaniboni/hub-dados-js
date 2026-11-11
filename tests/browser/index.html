@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; font-src data:; img-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hub de Dados — testes no navegador</title>
+    <link rel="stylesheet" href="../../css/fonts.css" />
+    <link rel="stylesheet" href="../../css/styles.css" />
+  </head>
+  <body>
+
+    <!-- Código da aplicação (mesma ordem do index.html, sem js/main.js) -->
+    <script src="../../js/core/types.js"></script>
+    <script src="../../js/core/limits.js"></script>
+    <script src="../../js/core/text.js"></script>
+    <script src="../../js/core/matcher.js"></script>
+    <script src="../../js/core/merge.js"></script>
+    <script src="../../js/core/pipeline.js"></script>
+    <script src="../../js/io/zip.js"></script>
+    <script src="../../js/io/csv-reader.js"></script>
+    <script src="../../js/io/xlsx-reader.js"></script>
+    <script src="../../js/io/read-file.js"></script>
+    <script src="../../js/export/text-formats.js"></script>
+    <script src="../../js/export/xlsx-writer.js"></script>
+    <script src="../../js/state/store.js"></script>
+    <script src="../../js/ui/dom.js"></script>
+    <script src="../../js/ui/dialogs.js"></script>
+    <script src="../../js/ui/sample.js"></script>
+    <script src="../../js/ui/app.js"></script>
+
+    <!-- Infraestrutura de testes -->
+    <script src="../support/runner.js"></script>
+    <script src="../support/expect.js"></script>
+    <script src="../support/helpers.js"></script>
+
+    <!-- Testes -->
+    <script src="../specs/core.spec.js"></script>
+    <script src="../specs/io.spec.js"></script>
+    <script src="../specs/export.spec.js"></script>
+    <script src="../specs/store.spec.js"></script>
+    <script src="../specs/realworld.spec.js"></script>
+    <script src="../specs/ui.spec.js"></script>
+
+    <script src="harness.js"></script>
+  </body>
+</html>

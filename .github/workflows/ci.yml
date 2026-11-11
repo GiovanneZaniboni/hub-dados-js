@@ -1,0 +1,23 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Sem "npm ci"/"npm install": o projeto não tem dependências.
+      - run: node tests/node/run.js
+      # O Chrome já vem instalado nos runners do GitHub.
+      - run: node tests/run-browser.js
+        env:
+          CHROME_PATH: /usr/bin/google-chrome

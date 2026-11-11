@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      CSP estrita: scripts e estilos só dos arquivos desta pasta ('self'), nenhuma conexão de rede
+      (connect-src 'none'), sem frames, formulários, workers ou plugins, e Trusted Types obrigatório
+      para sinks de script. A fonte vai embutida no CSS (font-src data:), por isso o app funciona
+      também ao abrir este arquivo por duplo clique (file://).
+      frame-ancestors só funciona como cabeçalho HTTP: veja docs/DEPLOY.md.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'none'; font-src data:; connect-src 'none'; worker-src 'none'; frame-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Hub de Dados</title>
+    <link rel="stylesheet" href="css/fonts.css" />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <noscript>Este aplicativo precisa de JavaScript para processar planilhas localmente.</noscript>
+
+    <!-- Scripts clássicos (sem módulos, que o navegador bloqueia em file://). A ORDEM importa:
+         cada arquivo usa o que os anteriores registraram em window.Hub. -->
+    <script src="js/core/types.js"></script>
+    <script src="js/core/limits.js"></script>
+    <script src="js/core/text.js"></script>
+    <script src="js/core/matcher.js"></script>
+    <script src="js/core/merge.js"></script>
+    <script src="js/core/pipeline.js"></script>
+    <script src="js/io/zip.js"></script>
+    <script src="js/io/csv-reader.js"></script>
+    <script src="js/io/xlsx-reader.js"></script>
+    <script src="js/io/read-file.js"></script>
+    <script src="js/export/text-formats.js"></script>
+    <script src="js/export/xlsx-writer.js"></script>
+    <script src="js/state/store.js"></script>
+    <script src="js/ui/dom.js"></script>
+    <script src="js/ui/dialogs.js"></script>
+    <script src="js/ui/sample.js"></script>
+    <script src="js/ui/app.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>
