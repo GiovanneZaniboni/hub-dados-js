@@ -2,22 +2,12 @@
   'use strict';
 
   const { listZip, extractZip } = H.zip;
+  const { parseXml, byTag } = H.xml;
   const { HubError, LimitError } = H.limits;
 
   const { cleanCell, dedupeHeaders } = H.text;
 
   const NS_REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
-
-  /** XML de planilhas nunca precisa de DTD/entidades; recusar elimina XXE e "billion laughs". */
-  function parseXml(bytes, what) {
-    const text = new TextDecoder('utf-8').decode(bytes);
-    if (/<!DOCTYPE|<!ENTITY/i.test(text)) throw new HubError(`Arquivo .xlsx inválido (${what} contém DTD).`);
-    const doc = new DOMParser().parseFromString(text, 'application/xml');
-    if (doc.getElementsByTagName('parsererror').length > 0) throw new HubError(`Arquivo .xlsx inválido (${what}).`);
-    return doc;
-  }
-
-  const byTag = (root, name) => Array.from(root.getElementsByTagName(name));
 
   /** Texto de <si>/<is>: junta <t> de runs ricos, ignorando fonética (<rPh>). */
   function richText(el) {
@@ -82,6 +72,35 @@
     let n = 0;
     for (const ch of (m[1]).toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
     return n - 1;
+  }
+
+  /** grade (linhas esparsas) -> tabela: acha o cabeçalho, remove linhas vazias e aplica os limites. */
+  function gridToTable(grid, maxCol, limits) {
+    // Cabeçalho = linha com mais células preenchidas nas primeiras 25 linhas.
+    let headerAt = -1;
+    let best = 0;
+    for (let i = 0; i < Math.min(grid.length, 25); i++) {
+      const count = (grid[i] ?? []).filter((x) => x !== '').length;
+      if (count > best) {
+        best = count;
+        headerAt = i;
+      }
+    }
+    if (headerAt === -1) throw new HubError('A planilha está vazia.');
+
+    const columns = dedupeHeaders(
+      Array.from({ length: maxCol }, (_, i) => (grid[headerAt] ?? [])[i] ?? ''),
+      limits.maxHeaderChars,
+    );
+    const rows = [];
+    for (let i = headerAt + 1; i < grid.length; i++) {
+      const r = grid[i];
+      if (!r) continue;
+      const out = Array.from({ length: maxCol }, (_, j) => r[j] ?? '');
+      if (out.some((x) => x !== '')) rows.push(out);
+      if (rows.length > limits.maxRowsPerFile) throw new LimitError(`O arquivo excede o limite de ${limits.maxRowsPerFile} linhas.`);
+    }
+    return { columns, rows };
   }
 
   async function readXlsx(bytes, limits) {
@@ -179,35 +198,11 @@
       grid[rowNo - 1] = Array.from(cells, (x) => x ?? '');
     }
 
-    // Cabeçalho = linha com mais células preenchidas nas primeiras 25 linhas.
-    let headerAt = -1;
-    let best = 0;
-    for (let i = 0; i < Math.min(grid.length, 25); i++) {
-      const count = (grid[i] ?? []).filter((x) => x !== '').length;
-      if (count > best) {
-        best = count;
-        headerAt = i;
-      }
-    }
-    if (headerAt === -1) throw new HubError('A planilha está vazia.');
-
-    const columns = dedupeHeaders(
-      Array.from({ length: maxCol }, (_, i) => (grid[headerAt] ?? [])[i] ?? ''),
-      limits.maxHeaderChars,
-    );
-    const rows = [];
-    for (let i = headerAt + 1; i < grid.length; i++) {
-      const r = grid[i];
-      if (!r) continue;
-      const out = Array.from({ length: maxCol }, (_, j) => r[j] ?? '');
-      if (out.some((x) => x !== '')) rows.push(out);
-      if (rows.length > limits.maxRowsPerFile) throw new LimitError(`O arquivo excede o limite de ${limits.maxRowsPerFile} linhas.`);
-    }
-
+    const { columns, rows } = gridToTable(grid, maxCol, limits);
     const warnings = [];
     if (sheets.length > 1) warnings.push(`O arquivo tem ${sheets.length} abas; foi usada a maior ("${chosen.name}").`);
     return { columns, rows, warnings, sheetName: chosen.name };
   }
 
-  H.xlsxReader = { serialToIso, numberToText, columnIndex, readXlsx };
+  H.xlsxReader = { serialToIso, numberToText, columnIndex, readXlsx, gridToTable, isDateFormat, BUILTIN_DATE_FORMATS };
 })((globalThis.Hub = globalThis.Hub || {}));

@@ -51,11 +51,9 @@
       expect(css).not.toMatch(/@import/);
     });
 
-    it('DOMParser só é usado com XML', () => {
-      for (const f of files) {
-        const code = stripComments(readFileSync(f, 'utf8'));
-        for (const m of code.matchAll(/parseFromString\([^)]*\)/g)) expect(m[0]).toContain("'application/xml'");
-      }
+    it('não usa DOMParser (incompatível com Trusted Types; o XML é lido por js/io/xml.js)', () => {
+      const offenders = files.filter((f) => /DOMParser|parseFromString/.test(stripComments(readFileSync(f, 'utf8'))));
+      expect(offenders).toEqual([]);
     });
 
     it('zero dependências: package.json não declara dependencies nem devDependencies', () => {

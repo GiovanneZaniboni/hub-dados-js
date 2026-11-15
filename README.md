@@ -1,6 +1,6 @@
 # Hub de Dados (versão JavaScript puro)
 
-Unifica planilhas (`.xlsx`, `.csv`, `.tsv`) a partir de um **modelo** de colunas: casa colunas por nome e sinônimos (ou por posição), consolida as linhas, mostra inconsistências e exporta em Excel, CSV, JSON ou SQL (SQLite).
+Unifica planilhas (`.xlsx`, `.xls`, `.xlsm`, `.csv`, `.tsv`) a partir de um **modelo** de colunas: casa colunas por nome e sinônimos (ou por posição), consolida as linhas, mostra inconsistências e exporta em Excel, CSV, JSON ou SQL (SQLite).
 
 Pensado para uso interno em empresa com dados sensíveis (LGPD):
 
@@ -37,7 +37,7 @@ Fluxo: (1) escolha o **modelo** (define as colunas de destino); (2) adicione os 
 | Colunas 100% numéricas | Exportadas como número no `.xlsx`; poupadas do "preencher vazios" |
 | Zeros à esquerda (`007`) | Preservados como texto |
 
-Formatos aceitos: `.xlsx`, `.csv`, `.tsv`, `.txt`. **`.xls`, `.xlsm` e `.xlsb` são recusados por segurança** (salve como `.xlsx`).
+Formatos aceitos: `.xlsx`, `.xls` (Excel 97-2003), `.xlsm` (só os valores; macros nunca são lidas nem executadas), `.csv`, `.tsv`, `.txt`. O formato real é reconhecido pelo **conteúdo**, não pela extensão: um `.xlsx` renomeado para `.xls` (ou o contrário) funciona, um `.xls` que na verdade é texto delimitado é lido como CSV (com aviso) e um `.xls` que na verdade é página HTML recebe uma mensagem explicando. **`.xlsb` e Excel anterior ao 97 não são suportados** (salve como `.xlsx`). Filtros automáticos, tabelas do Excel, linhas de totais e fórmulas são aceitos: só o **valor** de cada célula é lido.
 
 Limites (ajustáveis, no máximo 4x): 50 arquivos, 50 MB por arquivo, 200 mil linhas por arquivo, 500 mil no total, 256 colunas, 32.767 caracteres por célula.
 
@@ -68,7 +68,7 @@ O núcleo (`js/core`, `js/io`, `js/export`, `js/state`) não depende de DOM e po
 index.html        página única, com a CSP estrita
 css/              styles.css (tema roxo, claro/escuro automático), fonts.css (fonte embutida), licença da fonte
 js/core           tipos, limites, texto, matcher (sinônimos), merge, pipeline (estrutura, correções, diagnóstico)
-js/io             zip.js (leitor/gravador de ZIP próprio), leitores CSV (RFC 4180) e XLSX (zip + XML, com limites)
+js/io             zip.js (ZIP próprio), xml.js (XML próprio), leitores CSV (RFC 4180), XLSX (zip + XML) e XLS (OLE2 + BIFF8), todos com limites
 js/export         CSV/JSON/SQL e escritor XLSX (sem fórmulas)
 js/state          store em memória, com resultado derivado e memoizado
 js/ui             interface (DOM seguro, sem innerHTML), diálogos e dados de exemplo

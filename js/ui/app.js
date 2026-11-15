@@ -19,7 +19,7 @@
   };
 
   const PREVIEW_ROWS = 200;
-  const ACCEPT = '.xlsx,.csv,.tsv,.txt';
+  const ACCEPT = '.xlsx,.xls,.xlsm,.csv,.tsv,.txt';
 
   const FORMATS = [
     ['xlsx', 'Excel'],
@@ -101,7 +101,9 @@
           added++;
           for (const w of table.warnings) problems.push(`${file.name}: ${w}`);
         } catch (e) {
-          problems.push(`${file.name}: ${e instanceof HubError ? e.message : 'não foi possível ler o arquivo.'}`);
+          // Erros inesperados mostram só o tipo/mensagem técnica do navegador (nunca o conteúdo do arquivo), para facilitar o suporte.
+          const reason = e instanceof HubError ? e.message : `não foi possível ler o arquivo (${e && e.name ? e.name : 'erro'}${e && e.message ? ': ' + String(e.message).slice(0, 160) : ''}).`;
+          problems.push(`${file.name}: ${reason}`);
         }
         if (asModel) break;
       }

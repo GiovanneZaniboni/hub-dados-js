@@ -19,8 +19,8 @@ const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
 // Node não tem DOM: não carrega a interface (js/ui/*, js/main.js).
 for (const s of scripts) if (!s.startsWith('js/ui/') && s !== 'js/main.js') load(path.join(root, s));
 
-for (const f of ['runner.js', 'expect.js', 'helpers.js']) load(path.join(__dirname, '..', 'support', f));
-for (const f of ['core', 'io', 'export', 'store', 'realworld']) load(path.join(__dirname, '..', 'specs', `${f}.spec.js`));
+for (const f of ['runner.js', 'expect.js', 'helpers.js', 'xls-builder.js']) load(path.join(__dirname, '..', 'support', f));
+for (const f of ['core', 'io', 'xls', 'export', 'store', 'realworld']) load(path.join(__dirname, '..', 'specs', `${f}.spec.js`));
 for (const f of ['security', 'sql']) load(path.join(__dirname, `${f}.spec.js`));
 
 runAll().then((r) => {

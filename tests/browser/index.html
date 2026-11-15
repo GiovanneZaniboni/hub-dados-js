@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self'; style-src 'self'; font-src data:; img-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'none'; font-src data:; connect-src 'none'; worker-src 'none'; frame-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'; require-trusted-types-for 'script'; trusted-types 'none'"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Hub de Dados — testes no navegador</title>
@@ -21,8 +21,10 @@
     <script src="../../js/core/merge.js"></script>
     <script src="../../js/core/pipeline.js"></script>
     <script src="../../js/io/zip.js"></script>
+    <script src="../../js/io/xml.js"></script>
     <script src="../../js/io/csv-reader.js"></script>
     <script src="../../js/io/xlsx-reader.js"></script>
+    <script src="../../js/io/xls-reader.js"></script>
     <script src="../../js/io/read-file.js"></script>
     <script src="../../js/export/text-formats.js"></script>
     <script src="../../js/export/xlsx-writer.js"></script>
@@ -36,10 +38,12 @@
     <script src="../support/runner.js"></script>
     <script src="../support/expect.js"></script>
     <script src="../support/helpers.js"></script>
+    <script src="../support/xls-builder.js"></script>
 
     <!-- Testes -->
     <script src="../specs/core.spec.js"></script>
     <script src="../specs/io.spec.js"></script>
+    <script src="../specs/xls.spec.js"></script>
     <script src="../specs/export.spec.js"></script>
     <script src="../specs/store.spec.js"></script>
     <script src="../specs/realworld.spec.js"></script>

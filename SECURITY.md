@@ -14,17 +14,18 @@ O Hub processa planilhas que podem conter **dados pessoais** e que podem vir de 
 | Prototype pollution (`__proto__`, `constructor` como cabeçalho) | Linhas são arrays; arquivos do zip ficam em `Map`; JSON de saída usa `Object.create(null)`; testes cobrem |
 | Zip bomb em `.xlsx` | O leitor de ZIP próprio valida o diretório central, o tamanho descompactado **declarado**, o nº de entradas e o CRC-32 antes de aceitar; a descompressão é interrompida ao passar do tamanho declarado; só as partes necessárias são extraídas |
 | ZIP malformado ou ambíguo | Recusados: criptografados, zip64, nomes duplicados, métodos de compressão desconhecidos, offsets/tamanhos fora do arquivo. Nomes de entradas são só chaves em memória (nada é gravado em disco), então não há "path traversal" |
-| XXE / "billion laughs" em XML | XML com `<!DOCTYPE`/`<!ENTITY` é recusado; `DOMParser` só com `application/xml` |
+| XXE / "billion laughs" em XML | O XML é lido por [js/io/xml.js](js/io/xml.js), leitor próprio sem DOM: `<!DOCTYPE`/`<!ENTITY` e entidades desconhecidas são recusados, profundidade limitada. Não se usa `DOMParser` (incompatível com Trusted Types; um teste proíbe) |
 | Negação de serviço por arquivo enorme | Limites de tamanho, linhas, colunas e célula, aplicados durante a leitura |
 | Binário disfarçado de CSV | Assinatura (PK, %PDF, MZ, ELF) e bytes NUL rejeitados |
-| Formatos legados com parsers arriscados | `.xls`, `.xlsm`, `.xlsb` recusados |
+| `.xls` antigo e `.xlsm` com macros | O `.xls` (BIFF8) é lido por [js/io/xls-reader.js](js/io/xls-reader.js), parser próprio e somente leitura: lê apenas valores de células; fórmulas, macros e objetos embutidos nunca são interpretados nem executados. Cadeias de setores têm proteção contra ciclos, todas as leituras são validadas contra o tamanho do arquivo e qualquer erro vira mensagem clara (testado com arquivos truncados, lixo aleatório e ciclos). Arquivos protegidos por senha são recusados. `.xlsm` é lido como `.xlsx`: `vbaProject.bin` nunca é aberto. `.xlsb` segue recusado |
+| Arquivo com extensão enganosa | O formato é decidido pelo conteúdo (ZIP, OLE2, HTML/XML, texto); HTML/XML disfarçado de Excel é recusado com explicação |
 | Persistência acidental de dados | Nenhum uso de localStorage/sessionStorage/IndexedDB/cookies/Cache (teste); "Limpar tudo" e `destroy()` apagam a memória |
 | Vazamento por mensagens de erro | Só mensagens `HubError` (sem conteúdo do arquivo) chegam à tela; erros inesperados viram texto genérico |
 | Cadeia de suprimentos | **Zero dependências.** Não há pacotes de terceiros nem etapa de build; o que está na pasta é exatamente o que executa. Um teste falha se `package.json` ganhar `dependencies`/`devDependencies` ou se o código usar `require`/`import` |
 
 ## Sobre a ausência de bibliotecas
 
-Em versões anteriores o ZIP era tratado por uma biblioteca externa. Aqui ele é tratado por [js/io/zip.js](js/io/zip.js) (cerca de 250 linhas), que usa os recursos nativos do navegador (`DecompressionStream`/`CompressionStream`) apenas para a compressão em si; todo o resto (estrutura do ZIP, limites, CRC-32) é código desta pasta, coberto por testes. A fonte Plus Jakarta Sans está embutida em `css/fonts.css` (licença SIL OFL em `css/FONT-LICENSE.txt`).
+Em versões anteriores o ZIP era tratado por uma biblioteca externa e o XML pelo `DOMParser`. Aqui o ZIP é tratado por [js/io/zip.js](js/io/zip.js) (cerca de 250 linhas), que usa os recursos nativos do navegador (`DecompressionStream`/`CompressionStream`) apenas para a compressão em si; todo o resto (estrutura do ZIP, limites, CRC-32) é código desta pasta, coberto por testes. A fonte Plus Jakarta Sans está embutida em `css/fonts.css` (licença SIL OFL em `css/FONT-LICENSE.txt`).
 
 ## O que **não** está coberto
 

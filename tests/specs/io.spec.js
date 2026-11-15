@@ -8,8 +8,7 @@
   const { buildXlsx } = Hub.xlsxWriter;
   const { LIMITS, bytes, handmadeXlsx } = TestHelpers;
   const { buildZip, listZip, extractZip } = Hub.zip;
-  // O leitor de XLSX usa o DOMParser do navegador; no Node esses testes são pulados (rodam no navegador).
-  const itDom = typeof DOMParser === 'undefined' ? it.skip : it;
+  const itDom = it;
 
   describe('csv', () => {
     it('decodifica UTF-8 com BOM e cai para Windows-1252', () => {
@@ -60,8 +59,8 @@
   });
 
   describe('readBytes (validação de entrada)', () => {
-    it('rejeita .xls e formatos desconhecidos', async () => {
-      await expect(readBytes('a.xls', bytes('x'), LIMITS)).rejects.toThrow(/\.xls/);
+    it('rejeita .xlsb e formatos desconhecidos', async () => {
+      await expect(readBytes('a.xlsb', bytes('x'), LIMITS)).rejects.toThrow(/\.xlsb/);
       await expect(readBytes('a.exe', bytes('x'), LIMITS)).rejects.toThrow(HubError);
       await expect(readBytes('semext', bytes('x'), LIMITS)).rejects.toThrow(HubError);
     });

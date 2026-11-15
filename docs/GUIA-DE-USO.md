@@ -28,7 +28,7 @@ O modelo é uma planilha que **só precisa ter a linha de títulos** das colunas
 Clique em **Fazer upload dos arquivos** (ou arraste os arquivos para a área tracejada) e escolha todas as planilhas que quer juntar. Pode escolher vários de uma vez.
 
 - **A primeira linha de cada arquivo deve ser o cabeçalho** (os nomes das colunas).
-- Formatos aceitos: **.xlsx, .csv, .tsv, .txt**.
+- Formatos aceitos: **.xlsx, .xls (Excel antigo), .xlsm, .csv, .tsv, .txt**. Planilhas com filtros nas colunas, tabelas e linhas de totais funcionam: o Hub lê o **valor** de cada célula. Uma linha de total que esteja junto dos dados entra como linha comum; remova-a depois, se não quiser.
 - Para tirar um arquivo da fila, clique em **Remover**.
 - Se o arquivo tiver várias abas, o Hub usa **a maior** e avisa qual foi usada.
 
@@ -85,7 +85,9 @@ A prévia mostra as 200 primeiras linhas, mas **o arquivo exportado tem todas**.
 ## 4. Limites e o que não funciona
 
 - Até **50 arquivos** por vez, **50 MB** cada, **200 mil linhas** por arquivo e **500 mil** no total; até 256 colunas.
-- **Não funcionam:** `.xls` (Excel antigo), `.xlsm` (com macros), `.xlsb`. São recusados de propósito, por segurança. Abra no Excel e use **Salvar como → Pasta de Trabalho do Excel (.xlsx)**.
+- **Não funcionam:** `.xlsb` e Excel anterior ao 97 (Excel 5/95). Abra no Excel e use **Salvar como → Pasta de Trabalho do Excel (.xlsx)**. Arquivos protegidos por senha também não abrem.
+- **`.xlsm` (com macros):** é lido normalmente, mas só os valores das células; as macros nunca são executadas.
+- **Extensão enganosa:** o Hub reconhece o formato pelo conteúdo. Se um "`.xls`" for na verdade uma página HTML (comum em relatórios exportados de sistemas), o Hub avisa; abra-o no Excel e salve como `.xlsx`.
 - **Fórmulas:** o Hub lê só o **valor** que a fórmula mostra, não a fórmula. Formatação (cores, bordas) não é mantida.
 - **Datas** do Excel viram texto no formato `AAAA-MM-DD`.
 - **Números no formato brasileiro** (`1.234,50`) são tratados como texto e mantidos como estão; o Hub não converte.

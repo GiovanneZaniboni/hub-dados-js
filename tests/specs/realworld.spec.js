@@ -7,8 +7,7 @@
   const { readBytes } = Hub.fileReader;
   const { LIMITS, bytes, handmadeXlsx, loaded } = TestHelpers;
   const { buildZip } = Hub.zip;
-  // Leitura de XLSX precisa do DOMParser (navegador); no Node esses testes são pulados.
-  const itDom = typeof DOMParser === 'undefined' ? it.skip : it;
+  const itDom = it;
 
   /** Cenários parecidos com planilhas de verdade (Excel brasileiro, export de sistemas, etc.). */
   describe('cenários realistas', () => {
@@ -67,7 +66,7 @@
     });
 
     it('arquivo .xlsx corrompido ou zip vazio gera erro claro, não trava', async () => {
-      await expect(readBytes('x.xlsx', bytes('isto não é um zip'), LIMITS)).rejects.toThrow();
+      await expect(readBytes('x.xlsx', Uint8Array.from([0x50, 0x4b, 3, 4, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]), LIMITS)).rejects.toThrow();
       await expect(readBytes('x.xlsx', await buildZip([['a.txt', bytes('oi')]]), LIMITS)).rejects.toThrow();
     });
 
