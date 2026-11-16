@@ -8,13 +8,13 @@
 
   const DEFAULT_LIMITS = Object.freeze({
     maxFiles: 50,
-    maxFileBytes: 50 * 1024 * 1024,
-    maxRowsPerFile: 200_000,
-    maxTotalRows: 500_000,
+    maxFileBytes: 100 * 1024 * 1024,
+    maxRowsPerFile: 1_048_576, // máximo de linhas de uma planilha do Excel
+    maxTotalRows: 2_000_000,
     maxColumns: 256,
     maxCellChars: 32_767, // limite do Excel
     maxHeaderChars: 255,
-    maxXlsxUncompressedBytes: 200 * 1024 * 1024,
+    maxXlsxUncompressedBytes: 800 * 1024 * 1024,
     maxXlsxEntries: 2_000,
   });
 

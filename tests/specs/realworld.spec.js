@@ -87,6 +87,18 @@
       expect(r.rows.map((x) => x[0])).toEqual(['Ana', 'Bia', 'Caio']);
     });
 
+    it('volume: planilha .xlsx com 250 mil linhas (acima do limite antigo de 200 mil) é lida, unificada e exportada', async () => {
+      const columns = ['Nome', 'Email', 'Valor', 'Obs'];
+      const rows = Array.from({ length: 250_000 }, (_, i) => [`Pessoa ${i}`, `p${i}@x.com`, String(i), i % 5 === 0 ? 'a & b' : '']);
+      const data = await buildXlsx({ columns, rows, sourceColumn: null });
+      const t = await readBytes('grande.xlsx', data, LIMITS);
+      expect(t.columns).toEqual(columns);
+      expect(t.rows).toHaveLength(250_000);
+      expect(t.rows[249_999]).toEqual(['Pessoa 249999', 'p249999@x.com', '249999', '']);
+      expect(t.rows[5]).toEqual(['Pessoa 5', 'p5@x.com', '5', 'a & b']);
+      expect(LIMITS.maxRowsPerFile).toBeGreaterThanOrEqual(1_000_000);
+    });
+
     it('volume: 100 mil linhas unificam e exportam em tempo razoável', async () => {
       const rows = Array.from({ length: 100_000 }, (_, i) => [`Pessoa ${i}`, `p${i}@x.com`, String(i)]);
       const f = loaded('grande.csv', ['Nome', 'Email', 'Valor'], rows);

@@ -141,6 +141,101 @@
     });
   }
 
+  /** Bytes (UTF-8) -> texto, recusando DTD/entidades. Arquivos gigantes demais viram LimitError, não travamento. */
+  function decodeXml(bytes, what) {
+    let text;
+    try {
+      text = new TextDecoder('utf-8').decode(bytes);
+    } catch {
+      throw new H.limits.LimitError('O arquivo é grande demais para ser lido na memória do navegador.');
+    }
+    if (/<!DOCTYPE|<!ENTITY/i.test(text)) throw new HubError(`Arquivo inválido (${what} contém DTD).`);
+    return text;
+  }
+
+  const TAG_END = /[^>"']*(?:(?:"[^"]*"|'[^']*')[^>"']*)*>/y;
+
+  /**
+   * Percorre, em ordem, os elementos com o nome local informado (não aninhados), analisando um de cada vez.
+   * Assim uma planilha com milhões de células nunca vira uma árvore gigante na memória.
+   */
+  function forEachElement(text, name, fn, what) {
+    const re = new RegExp('<([A-Za-z_][\\w.-]*:)?' + name + '(?=[\\s>/])', 'g');
+    let m;
+    while ((m = re.exec(text))) {
+      const start = m.index;
+      TAG_END.lastIndex = start + m[0].length;
+      const open = TAG_END.exec(text);
+      if (!open) throw new HubError(`Arquivo inválido (${what}).`);
+      const openEnd = TAG_END.lastIndex;
+      let stop = openEnd;
+      if (text.charCodeAt(openEnd - 2) !== 47 /* "/" */) {
+        const close = `</${m[1] ?? ''}${name}>`;
+        const at = text.indexOf(close, openEnd);
+        if (at === -1) throw new HubError(`Arquivo inválido (${what}).`);
+        stop = at + close.length;
+      }
+      const doc = parseXmlText(text.slice(start, stop), () => {
+        throw new HubError(`Arquivo inválido (${what}).`);
+      });
+      fn(doc.children[0]);
+      re.lastIndex = stop;
+    }
+  }
+
+  const BLOCK_BYTES = 32 * 1024 * 1024;
+
+  /** Última posição de `needle` em bytes[from, to), ou -1. */
+  function lastIndexOfBytes(bytes, needle, from, to) {
+    for (let i = to - needle.length; i >= from; i--) {
+      if (bytes[i] !== needle[0]) continue;
+      let ok = true;
+      for (let k = 1; k < needle.length; k++) {
+        if (bytes[i + k] !== needle[k]) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) return i;
+    }
+    return -1;
+  }
+
+  /**
+   * Como forEachElement, mas direto sobre os bytes: decodifica em blocos de ~32 MB cortados logo após um fechamento
+   * </nome>, para nunca criar uma string gigante (o navegador não aceita textos acima de ~512 MB).
+   */
+  function forEachElementInBytes(bytes, name, fn, what) {
+    const close = new TextEncoder().encode(`</${name}>`);
+    const decoder = new TextDecoder('utf-8');
+    let pos = 0;
+    while (pos < bytes.length) {
+      let end = Math.min(pos + BLOCK_BYTES, bytes.length);
+      if (end < bytes.length) {
+        let scanFrom = pos;
+        let cut = -1;
+        // Se o bloco não tem nenhum fechamento, amplia até achar (ou até o fim do arquivo).
+        while (cut === -1 && end < bytes.length) {
+          cut = lastIndexOfBytes(bytes, close, scanFrom, end);
+          if (cut === -1) {
+            scanFrom = end;
+            end = Math.min(end + BLOCK_BYTES, bytes.length);
+          }
+        }
+        end = cut === -1 ? bytes.length : cut + close.length;
+      }
+      let text;
+      try {
+        text = decoder.decode(bytes.subarray(pos, end));
+      } catch {
+        throw new H.limits.LimitError('O arquivo é grande demais para ser lido na memória do navegador.');
+      }
+      if (/<!DOCTYPE|<!ENTITY/i.test(text)) throw new HubError(`Arquivo inválido (${what} contém DTD).`);
+      forEachElement(text, name, fn, what);
+      pos = end;
+    }
+  }
+
   /** Todos os descendentes com o nome local informado, na ordem do documento. */
   function byTag(root, name) {
     const out = [];
@@ -154,5 +249,5 @@
     return out;
   }
 
-  H.xml = { parseXml, parseXmlText, byTag };
+  H.xml = { parseXml, parseXmlText, byTag, decodeXml, forEachElement, forEachElementInBytes };
 })((globalThis.Hub = globalThis.Hub || {}));

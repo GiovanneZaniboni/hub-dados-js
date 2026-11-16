@@ -84,7 +84,7 @@ A prévia mostra as 200 primeiras linhas, mas **o arquivo exportado tem todas**.
 
 ## 4. Limites e o que não funciona
 
-- Até **50 arquivos** por vez, **50 MB** cada, **200 mil linhas** por arquivo e **500 mil** no total; até 256 colunas.
+- Até **50 arquivos** por vez, **100 MB** cada, **1.048.576 linhas** por arquivo (o máximo do Excel) e **2 milhões** no total; até 256 colunas.
 - **Não funcionam:** `.xlsb` e Excel anterior ao 97 (Excel 5/95). Abra no Excel e use **Salvar como → Pasta de Trabalho do Excel (.xlsx)**. Arquivos protegidos por senha também não abrem.
 - **`.xlsm` (com macros):** é lido normalmente, mas só os valores das células; as macros nunca são executadas.
 - **Extensão enganosa:** o Hub reconhece o formato pelo conteúdo. Se um "`.xls`" for na verdade uma página HTML (comum em relatórios exportados de sistemas), o Hub avisa; abra-o no Excel e salve como `.xlsx`.

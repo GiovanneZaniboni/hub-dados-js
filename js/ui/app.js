@@ -272,7 +272,13 @@
         }
         say(`Arquivo ${format.toUpperCase()} gerado.`);
       } catch (e) {
-        fail(e instanceof HubError ? e.message : 'Falha ao gerar o arquivo.');
+        fail(
+          e instanceof HubError
+            ? e.message
+            : e instanceof RangeError
+              ? 'O resultado é grande demais para este formato. Exporte em Excel (.xlsx) ou CSV.'
+              : 'Falha ao gerar o arquivo.',
+        );
       }
     }
 

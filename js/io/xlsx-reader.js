@@ -2,7 +2,7 @@
   'use strict';
 
   const { listZip, extractZip } = H.zip;
-  const { parseXml, byTag } = H.xml;
+  const { parseXml, byTag, decodeXml, forEachElement, forEachElementInBytes } = H.xml;
   const { HubError, LimitError } = H.limits;
 
   const { cleanCell, dedupeHeaders } = H.text;
@@ -151,20 +151,22 @@
     const shared = [];
     const sharedBytes = files.get('xl/sharedStrings.xml');
     if (sharedBytes) {
-      for (const si of byTag(parseXml(sharedBytes, 'textos'), 'si')) {
+      forEachElement(decodeXml(sharedBytes, 'textos'), 'si', (si) => {
         shared.push(richText(si));
         if (shared.length > limits.maxRowsPerFile * limits.maxColumns) throw new LimitError('Textos compartilhados demais.');
-      }
+      }, 'textos');
     }
     const stylesBytes = files.get('xl/styles.xml');
     const dateStyles = readDateStyles(stylesBytes ? parseXml(stylesBytes, 'estilos') : null);
 
-    const sheetDoc = parseXml(files.get(chosen.path), 'planilha');
+    const sheetBytes = files.get(chosen.path);
+    files.delete(chosen.path); // libera memória: a aba é o maior objeto
     const grid = [];
     let maxCol = 0;
     let seq = 0;
 
-    for (const rowEl of byTag(sheetDoc, 'row')) {
+    // Uma linha por vez (sem montar a árvore da planilha inteira): essencial para arquivos com centenas de milhares de linhas.
+    forEachElementInBytes(sheetBytes, 'row', (rowEl) => {
       seq++;
       const rowNo = Number(rowEl.getAttribute('r')) || seq;
       if (rowNo > limits.maxRowsPerFile + 26) throw new LimitError(`O arquivo excede o limite de ${limits.maxRowsPerFile} linhas.`);
@@ -196,7 +198,7 @@
         if (col + 1 > maxCol) maxCol = col + 1;
       }
       grid[rowNo - 1] = Array.from(cells, (x) => x ?? '');
-    }
+    }, 'planilha');
 
     const { columns, rows } = gridToTable(grid, maxCol, limits);
     const warnings = [];

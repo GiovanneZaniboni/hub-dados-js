@@ -97,8 +97,20 @@
     const text = (ref, v, style = '') =>
       `<c r="${ref}"${style} t="inlineStr"><is><t xml:space="preserve">${xmlEscape(v)}</t></is></c>`;
 
-    const rowsXml = [];
-    rowsXml.push(`<row r="1">${grid.columns.map((c, i) => text(`${columnLetters(i)}1`, c, ' s="1"')).join('')}</row>`);
+    // A aba é montada e codificada em blocos de linhas: uma string única passaria do limite do navegador (~512 MB) em planilhas grandes.
+    const enc = new TextEncoder();
+    const cols = widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('');
+    const parts = [enc.encode(`${XML_HEADER}<worksheet xmlns="${NS_MAIN}"><cols>${cols}</cols><sheetData>`)];
+    let block = [];
+    const flush = () => {
+      if (block.length > 0) parts.push(enc.encode(block.join('')));
+      block = [];
+    };
+    const addRow = (xml) => {
+      block.push(xml);
+      if (block.length >= 5000) flush();
+    };
+    addRow(`<row r="1">${grid.columns.map((c, i) => text(`${columnLetters(i)}1`, c, ' s="1"')).join('')}</row>`);
     grid.rows.forEach((r, ri) => {
       const rowNo = ri + 2;
       const cells = [];
@@ -109,23 +121,27 @@
         // numeric[i] só é verdadeiro se TODAS as células da coluna casam com ^-?\d+(\.\d+)?$
         cells.push(numeric[i] ? `<c r="${ref}"><v>${v}</v></c>` : text(ref, v));
       }
-      rowsXml.push(`<row r="${rowNo}">${cells.join('')}</row>`);
+      addRow(`<row r="${rowNo}">${cells.join('')}</row>`);
     });
-
-    const cols = widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('');
-    const sheet = `${XML_HEADER}<worksheet xmlns="${NS_MAIN}"><cols>${cols}</cols><sheetData>${rowsXml.join('')}</sheetData></worksheet>`;
+    flush();
+    parts.push(enc.encode('</sheetData></worksheet>'));
+    const sheet = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+    let at = 0;
+    for (const p of parts) {
+      sheet.set(p, at);
+      at += p.length;
+    }
     const workbook =
       `${XML_HEADER}<workbook xmlns="${NS_MAIN}" xmlns:r="${NS_REL}">` +
       `<sheets><sheet name="${xmlEscape(safeSheetName(sheetName))}" sheetId="1" r:id="rId1"/></sheets></workbook>`;
 
-    const enc = new TextEncoder();
     return buildZip([
       ['[Content_Types].xml', enc.encode(CONTENT_TYPES)],
       ['_rels/.rels', enc.encode(ROOT_RELS)],
       ['xl/workbook.xml', enc.encode(workbook)],
       ['xl/_rels/workbook.xml.rels', enc.encode(WORKBOOK_RELS)],
       ['xl/styles.xml', enc.encode(STYLES)],
-      ['xl/worksheets/sheet1.xml', enc.encode(sheet)],
+      ['xl/worksheets/sheet1.xml', sheet],
     ]);
   }
 

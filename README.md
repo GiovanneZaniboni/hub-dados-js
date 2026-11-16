@@ -39,7 +39,7 @@ Fluxo: (1) escolha o **modelo** (define as colunas de destino); (2) adicione os 
 
 Formatos aceitos: `.xlsx`, `.xls` (Excel 97-2003), `.xlsm` (só os valores; macros nunca são lidas nem executadas), `.csv`, `.tsv`, `.txt`. O formato real é reconhecido pelo **conteúdo**, não pela extensão: um `.xlsx` renomeado para `.xls` (ou o contrário) funciona, um `.xls` que na verdade é texto delimitado é lido como CSV (com aviso) e um `.xls` que na verdade é página HTML recebe uma mensagem explicando. **`.xlsb` e Excel anterior ao 97 não são suportados** (salve como `.xlsx`). Filtros automáticos, tabelas do Excel, linhas de totais e fórmulas são aceitos: só o **valor** de cada célula é lido.
 
-Limites (ajustáveis, no máximo 4x): 50 arquivos, 50 MB por arquivo, 200 mil linhas por arquivo, 500 mil no total, 256 colunas, 32.767 caracteres por célula.
+Limites (ajustáveis, no máximo 4x): 50 arquivos, 100 MB por arquivo, 1.048.576 linhas por arquivo (o máximo do Excel), 2 milhões no total, 256 colunas, 32.767 caracteres por célula.
 
 ## Embutir em outra página
 
