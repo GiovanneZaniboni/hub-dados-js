@@ -147,6 +147,61 @@
     });
   });
 
+  describe('linhas ocultas, células mescladas e fórmulas', () => {
+    const is = (r, text) => `<c r="${r}" t="inlineStr"><is><t>${text}</t></is></c>`;
+    const NS = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
+
+    it('.xlsx: linhas ocultas por filtro são identificadas; mescladas verticais repetem o valor; título mesclado é ignorado', async () => {
+      const sheet =
+        `<worksheet ${NS}><sheetData>` +
+        `<row r="1">${is('A1', 'Vendas 2026')}</row>` +
+        `<row r="2">${is('A2', 'Região')}${is('B2', 'Produto')}${is('C2', 'Valor')}</row>` +
+        `<row r="3">${is('A3', 'Sul')}${is('B3', 'X')}<c r="C3"><v>100</v></c></row>` +
+        `<row r="4">${is('B4', 'Y')}<c r="C4"><v>200</v></c></row>` +
+        `<row r="5" hidden="1">${is('A5', 'Norte')}${is('B5', 'Z')}<c r="C5"><v>999</v></c></row>` +
+        `<row r="6">${is('A6', 'Total')}<c r="C6"><v>300</v></c></row>` +
+        '</sheetData><autoFilter ref="A2:C5"/><mergeCells count="2"><mergeCell ref="A1:C1"/><mergeCell ref="A3:A4"/></mergeCells></worksheet>';
+      const data = await handmadeXlsx({ sheetXml: '', extra: { 'xl/worksheets/sheet1.xml': sheet } });
+      const t = await readBytes('a.xlsx', data, LIMITS);
+      expect(t.columns).toEqual(['Região', 'Produto', 'Valor']);
+      expect(t.rows).toEqual([['Sul', 'X', '100'], ['Sul', 'Y', '200'], ['Norte', 'Z', '999'], ['Total', '', '300']]);
+      expect(t.hidden).toEqual([2]);
+      expect(t.warnings.join(' ')).toMatch(/1 célula\(s\) de áreas mescladas/);
+    });
+
+    it('.xlsx: fórmula sem valor calculado gera aviso; com valor, o valor é lido', async () => {
+      const sheet =
+        `<worksheet ${NS}><sheetData>` +
+        `<row r="1">${is('A1', 'a')}${is('B1', 'b')}</row>` +
+        '<row r="2"><c r="A2"><f>1+1</f><v>2</v></c><c r="B2"><f>2*3</f></c></row></sheetData></worksheet>';
+      const data = await handmadeXlsx({ sheetXml: '', extra: { 'xl/worksheets/sheet1.xml': sheet } });
+      const t = await readBytes('a.xlsx', data, LIMITS);
+      expect(t.rows).toEqual([['2', '']]);
+      expect(t.warnings.join(' ')).toMatch(/1 célula\(s\) têm fórmula sem valor/);
+    });
+
+    it('.xls: linhas ocultas (registro ROW) e células mescladas (MERGEDCELLS)', async () => {
+      const data = buildXls({
+        sheets: [
+          {
+            name: 'S',
+            hiddenRows: [3],
+            merges: [[0, 0, 0, 2], [1, 0, 2, 0]],
+            cells: [
+              ...header('Região', 'Produto', 'Valor'),
+              [1, 0, 'Sul'], [1, 1, 'X'], [1, 2, 100],
+              [2, 1, 'Y'], [2, 2, 200],
+              [3, 0, 'Norte'], [3, 1, 'Z'], [3, 2, 999],
+            ],
+          },
+        ],
+      });
+      const t = await readBytes('a.xls', data, LIMITS);
+      expect(t.rows).toEqual([['Sul', 'X', '100'], ['Sul', 'Y', '200'], ['Norte', 'Z', '999']]);
+      expect(t.hidden).toEqual([2]);
+    });
+  });
+
   describe('extensões de Excel com conteúdo diferente', () => {
     it('.xls que na verdade é HTML ou XML recebe mensagem específica', async () => {
       await expect(readBytes('a.xls', bytes('<html><table><tr><td>x</td></tr></table></html>'), LIMITS)).rejects.toThrow(/HTML/);

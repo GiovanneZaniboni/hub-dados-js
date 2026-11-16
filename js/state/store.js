@@ -4,7 +4,10 @@
   const { HubError, LimitError, mergeLimits } = H.limits;
   const { mergeTables } = H.merge;
 
-  const { NO_FIXES, NO_STRUCTURE, applyFixes, applyStructure, diagnose } = H.pipeline;
+  const { NO_FIXES, NO_STRUCTURE, applyFixes, applyStructure, diagnose, findTotalRows } = H.pipeline;
+
+  /** Opções de leitura por arquivo: linhas ocultas por filtro saem por padrão; linhas de total ficam, a menos que o usuário peça. */
+  const DEFAULT_FILE_OPTIONS = Object.freeze({ ignoreHidden: true, ignoreTotals: false });
 
   /** Estado do Hub. Existe apenas em memória: nada é gravado em disco, cookie ou storage. */
 
@@ -39,12 +42,22 @@
       listeners.forEach((l) => l());
     };
 
+    /** Arquivos com as opções aplicadas (linhas ocultas/total removidas), sem alterar a tabela original. */
+    const effectiveFiles = () =>
+      state.files.map((f) => {
+        const skip = new Set();
+        if (f.options.ignoreHidden) f.info.hidden.forEach((i) => skip.add(i));
+        if (f.options.ignoreTotals) f.info.totals.forEach((i) => skip.add(i));
+        if (skip.size === 0) return f;
+        return { ...f, table: { ...f.table, rows: f.table.rows.filter((_, i) => !skip.has(i)) } };
+      });
+
     const compute = () => {
       if (!state.model && state.files.length === 0) return null;
       const merge = mergeTables({
         model: state.model,
         includeModelRows: state.includeModelRows,
-        files: state.files,
+        files: effectiveFiles(),
         mode: state.mode,
         overrides: state.overrides,
       });
@@ -85,9 +98,16 @@
           throw new LimitError(`O total de linhas excederia o limite de ${limits.maxTotalRows}.`);
         }
         const id = newId();
-        state = { ...state, files: [...state.files, { id, name, bytes, table }] };
+        const info = { hidden: new Set(table.hidden ?? []), totals: new Set(findTotalRows(table.rows)) };
+        state = { ...state, files: [...state.files, { id, name, bytes, table, options: { ...DEFAULT_FILE_OPTIONS }, info }] };
         emit();
         return id;
+      },
+      setFileOption(id, key, value) {
+        if (!Object.prototype.hasOwnProperty.call(DEFAULT_FILE_OPTIONS, key) || typeof value !== 'boolean') throw new HubError('Opção inválida.');
+        if (!state.files.some((f) => f.id === id)) throw new HubError('Arquivo desconhecido.');
+        state = { ...state, files: state.files.map((f) => (f.id === id ? { ...f, options: { ...f.options, [key]: value } } : f)) };
+        emit();
       },
       removeFile(id) {
         const overrides = new Map(state.overrides);

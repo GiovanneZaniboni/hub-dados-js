@@ -67,6 +67,11 @@ async function main() {
     ws.onmessage = (m) => {
       const msg = JSON.parse(m.data);
       if (msg.id && pending.has(msg.id)) pending.get(msg.id)(msg);
+      else if (msg.method === 'Runtime.exceptionThrown') {
+        // Erro de script ao carregar a página (ex.: erro de sintaxe em um spec): os testes daquele arquivo nem rodariam.
+        const d = msg.params.exceptionDetails;
+        violations.push(`ERRO DE SCRIPT: ${(d.exception && d.exception.description) || d.text} @ ${d.url || '?'}:${d.lineNumber}`);
+      }
       else if (msg.method === 'Log.entryAdded' && /Content Security Policy|Refused to/i.test(msg.params.entry.text) && !isBenignParserError(msg.params.entry)) violations.push(msg.params.entry.text.slice(0, 120) + ' @ ' + (msg.params.entry.url || '?') + ':' + (msg.params.entry.lineNumber || '?') + ' ' + JSON.stringify(msg.params.entry.stackTrace || '').slice(0, 400));
     };
     const send = (method, params = {}) =>

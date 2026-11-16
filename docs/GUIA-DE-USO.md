@@ -40,6 +40,14 @@ Escolha como as colunas dos arquivos são ligadas às do modelo:
 
 Na dúvida, deixe a opção recomendada.
 
+### Planilhas com filtros, mesclagens e totais
+O Hub lê planilhas com filtros nas colunas, tabelas do Excel, células mescladas e fórmulas, sempre pelo **valor que aparece** em cada célula. Alguns detalhes:
+
+- **Linhas escondidas pelo filtro** não entram no resultado por padrão. Abaixo do nome do arquivo, na fila, aparece a opção "Ignorar N linha(s) oculta(s) por filtro"; desmarque se quiser incluí-las.
+- **Linhas de total** ("Total", "Subtotal", "Total geral") ficam no resultado, mas o Hub avisa quantas encontrou e oferece "Ignorar N linha(s) que parece(m) total".
+- **Células mescladas na vertical** (um valor que ocupa várias linhas) são repetidas em cada linha, para que nenhuma fique vazia. O Hub avisa quando faz isso.
+- **Fórmulas:** o Hub **não recalcula**. Se uma fórmula não tem valor guardado no arquivo (acontece em arquivos gerados por alguns sistemas), a célula fica vazia e o Hub avisa; abra o arquivo no Excel e salve de novo.
+
 ### Conferir e ajustar
 O resultado aparece em **Prévia dos dados**. Em cada coluna, uma linha pequena mostra de onde ela veio quando o nome mudou (por exemplo `← cliente`). Células vazias ficam destacadas em laranja.
 

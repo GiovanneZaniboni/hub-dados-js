@@ -208,7 +208,11 @@
     };
     const sheetStreams = spec.sheets.map((sheet) => {
       const cells = [...sheet.cells].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-      return concat([bof(0x0010), ...cells.flatMap(([r, c, v]) => cellRecords(r, c, v, sstIndex)), EOF]);
+      const rowRecords = (sheet.hiddenRows ?? []).map((r) => rec(0x0208, u16(r), u16(0), u16(0), u16(255), u16(0), u16(0), u16(0x20), u16(0)));
+      const merges = (sheet.merges ?? []).length
+        ? [rec(0x00e5, u16(sheet.merges.length), ...sheet.merges.flatMap(([r1, c1, r2, c2]) => [u16(r1), u16(r2), u16(c1), u16(c2)]))]
+        : [];
+      return concat([bof(0x0010), ...rowRecords, ...cells.flatMap(([r, c, v]) => cellRecords(r, c, v, sstIndex)), ...merges, EOF]);
     });
 
     const xf = (fmt) => rec(0x00e0, u16(0), u16(fmt), new Uint8Array(16));

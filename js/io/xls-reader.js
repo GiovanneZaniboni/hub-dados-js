@@ -11,7 +11,7 @@
 
   const { HubError, LimitError } = H.limits;
   const { cleanCell } = H.text;
-  const { serialToIso, numberToText, gridToTable, isDateFormat, BUILTIN_DATE_FORMATS } = H.xlsxReader;
+  const { serialToIso, numberToText, gridToTable, fillMerged, isDateFormat, BUILTIN_DATE_FORMATS } = H.xlsxReader;
 
   const CORRUPT = 'Arquivo .xls corrompido ou em formato não suportado.';
   const OLE_SIGNATURE = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
@@ -143,6 +143,8 @@
     BOOLERR: 0x0205,
     FORMULA: 0x0006,
     STRING: 0x0207,
+    ROW: 0x0208,
+    MERGEDCELLS: 0x00e5,
   };
 
   const ERROR_TEXT = new Map([[0x00, '#NULL!'], [0x07, '#DIV/0!'], [0x0f, '#VALUE!'], [0x17, '#REF!'], [0x1d, '#NAME?'], [0x24, '#NUM!'], [0x2a, '#N/A']]);
@@ -340,6 +342,8 @@
     };
     const num = (value, ixfe) => (dateFormat.has(ixfe) ? serialToIso(value, date1904) : numberToText(String(value)));
 
+    const hiddenGrid = new Set();
+    const mergeRanges = [];
     let pendingFormula = null; // fórmula cujo resultado de texto vem no registro STRING seguinte
     const start = recs.findIndex((r) => r.at - 4 === chosen.offset);
     if (start === -1) fail();
@@ -348,6 +352,17 @@
       if (r.type === REC.EOF) break;
       const a = r.at;
       switch (r.type) {
+        case REC.ROW:
+          if (r.len >= 14 && (view.getUint16(a + 12, true) & 0x20) !== 0) hiddenGrid.add(view.getUint16(a, true));
+          break;
+        case REC.MERGEDCELLS: {
+          const count = Math.min(view.getUint16(a, true), Math.floor((r.len - 2) / 8));
+          for (let k = 0; k < count && mergeRanges.length < 100_000; k++) {
+            const p = a + 2 + k * 8;
+            mergeRanges.push([view.getUint16(p, true), view.getUint16(p + 4, true), view.getUint16(p + 2, true), view.getUint16(p + 6, true)]);
+          }
+          break;
+        }
         case REC.LABELSST: {
           put(view.getUint16(a, true), view.getUint16(a + 2, true), sst[view.getUint32(a + 6, true)] ?? '');
           break;
@@ -409,10 +424,13 @@
       }
     }
 
-    const { columns, rows } = gridToTable(grid, maxCol, limits);
+    const merged = fillMerged(grid, mergeRanges, maxCol, limits);
+    maxCol = merged.maxCol;
+    const { columns, rows, hidden } = gridToTable(grid, maxCol, limits, hiddenGrid);
     const warnings = [];
+    if (merged.filled > 0) warnings.push(`${merged.filled} célula(s) de áreas mescladas foram preenchidas repetindo o valor.`);
     if (worksheets.length > 1) warnings.push(`O arquivo tem ${worksheets.length} abas; foi usada a maior ("${chosen.name}").`);
-    return { columns, rows, warnings, sheetName: chosen.name };
+    return { columns, rows, warnings, sheetName: chosen.name, hidden };
   }
 
   H.xlsReader = { isOle, readXls, readOleStream };

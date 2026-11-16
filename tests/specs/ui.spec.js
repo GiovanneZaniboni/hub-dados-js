@@ -94,6 +94,18 @@
       expect(root.querySelector('.banner-warn .btn-small')).not.toBeNull();
     });
 
+    it('linhas de total: caixa de seleção por arquivo exclui a linha do resultado', async () => {
+      await upload('files-input', [csv('a.csv', 'Nome;Valor' + String.fromCharCode(10) + 'Ana;1' + String.fromCharCode(10) + 'Total;1' + String.fromCharCode(10))]);
+      expect(hub.getResult()?.rows).toHaveLength(2);
+      const box = Array.from(root.querySelectorAll('.chip-option input'))[0];
+      expect(box).toBeDefined();
+      expect(root.querySelector('.chip-option')?.textContent).toContain('Ignorar 1 linha(s) que parece(m) total');
+      box.checked = true;
+      box.dispatchEvent(new Event('change', { bubbles: true }));
+      await tick(30);
+      expect(hub.getResult()?.rows).toHaveLength(1);
+    });
+
     it('onChange recebe o resultado atual', async () => {
       const seen = [];
       hub.destroy();

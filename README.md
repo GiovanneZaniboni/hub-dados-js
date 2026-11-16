@@ -36,6 +36,10 @@ Fluxo: (1) escolha o **modelo** (define as colunas de destino); (2) adicione os 
 | Datas do Excel | Convertidas para `AAAA-MM-DD` (e hora, se houver) |
 | Colunas 100% numéricas | Exportadas como número no `.xlsx`; poupadas do "preencher vazios" |
 | Zeros à esquerda (`007`) | Preservados como texto |
+| Linhas ocultas por filtro (`.xlsx`/`.xls`) | Identificadas e **ignoradas por padrão**, com caixa de seleção por arquivo para incluí-las |
+| Linhas de "Total"/"Subtotal" junto dos dados | Identificadas; ficam no resultado, com caixa de seleção por arquivo para excluí-las |
+| Células mescladas na vertical (ex.: uma "Região" que agrupa várias linhas) | O valor é repetido nas linhas de baixo, com aviso. Mesclagens de uma linha só (títulos) são ignoradas |
+| Fórmula sem valor calculado guardado | Fica vazia, com aviso para abrir no Excel e salvar de novo (o Hub não recalcula fórmulas) |
 
 Formatos aceitos: `.xlsx`, `.xls` (Excel 97-2003), `.xlsm` (só os valores; macros nunca são lidas nem executadas), `.csv`, `.tsv`, `.txt`. O formato real é reconhecido pelo **conteúdo**, não pela extensão: um `.xlsx` renomeado para `.xls` (ou o contrário) funciona, um `.xls` que na verdade é texto delimitado é lido como CSV (com aviso) e um `.xls` que na verdade é página HTML recebe uma mensagem explicando. **`.xlsb` e Excel anterior ao 97 não são suportados** (salve como `.xlsx`). Filtros automáticos, tabelas do Excel, linhas de totais e fórmulas são aceitos: só o **valor** de cada célula é lido.
 

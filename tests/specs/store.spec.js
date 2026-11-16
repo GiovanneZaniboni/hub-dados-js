@@ -88,5 +88,24 @@
       expect(s.getState().files).toEqual([]);
       expect(s.getState().fixes.fillEmpty).toBeNull();
     });
+
+    it('linhas ocultas saem por padrão; linhas de total ficam até o usuário pedir; a tabela original não muda', () => {
+      const s = createStore();
+      const id = s.addFile('a.xlsx', 1, { columns: ['Nome', 'Valor'], rows: [['A', '1'], ['B', '2'], ['Total', '3'], ['C', '4']], warnings: [], hidden: [1] });
+      expect(s.getComputed()?.grid.rows.map((r) => r[0])).toEqual(['A', 'Total', 'C']);
+      s.setFileOption(id, 'ignoreTotals', true);
+      expect(s.getComputed()?.grid.rows.map((r) => r[0])).toEqual(['A', 'C']);
+      s.setFileOption(id, 'ignoreHidden', false);
+      expect(s.getComputed()?.grid.rows.map((r) => r[0])).toEqual(['A', 'B', 'C']);
+      expect(s.getState().files[0].table.rows).toHaveLength(4);
+      expect(() => s.setFileOption(id, 'outra', true)).toThrow(HubError);
+      expect(() => s.setFileOption(id, 'ignoreHidden', 'sim')).toThrow(HubError);
+    });
+
+    it('findTotalRows só pega linhas cujo primeiro texto é "total"/"subtotal"', () => {
+      const { findTotalRows } = Hub.pipeline;
+      const rows = [['Total', '1'], ['', 'Subtotal'], ['Total Brasil Ltda', '2'], ['Total geral:', '3'], ['Totais', ''], ['Ana', 'Total']];
+      expect(findTotalRows(rows)).toEqual([0, 1, 3, 4]);
+    });
   });
 })();

@@ -259,6 +259,7 @@ span.hint { display: block; }
 }
 .chip-empty { background: var(--line-soft); border-style: dashed; }
 .chip-main { flex: 1 1 160px; min-width: 0; }
+.chip-option { flex: 1 1 100%; padding-top: 4px; }
 .chip-main strong { display: block; overflow-wrap: anywhere; font-size: 0.9rem; }
 
 .check { display: flex; gap: 8px; align-items: flex-start; font-size: 0.88rem; }

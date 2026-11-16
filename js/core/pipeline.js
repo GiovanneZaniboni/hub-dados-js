@@ -11,6 +11,21 @@
     removeDuplicateRows: false,
   });
   
+  const TOTAL_LABEL = /^(sub[\s-]?)?(total|totais)(\s+(geral|final))?\s*:?$/i;
+
+  /**
+   * Posições das linhas que parecem totais ("Total", "Subtotal", "Total geral"...): o primeiro texto da linha é só essa
+   * palavra. É uma heurística (só isso, para não pegar nomes como "Total Brasil Ltda"), por isso o usuário decide se exclui.
+   */
+  function findTotalRows(rows) {
+    const found = [];
+    rows.forEach((row, i) => {
+      const first = row.find((cell) => cell !== '');
+      if (first !== undefined && first.length <= 20 && TOTAL_LABEL.test(first.trim())) found.push(i);
+    });
+    return found;
+  }
+
   /** Aplica ordem, remoções e colunas adicionadas pelo usuário. Não altera a entrada. */
   function applyStructure(grid, edit) {
     const deleted = new Set(edit.deleted);
@@ -108,5 +123,5 @@
     };
   }
 
-  H.pipeline = { NO_STRUCTURE, NO_FIXES, applyStructure, applyFixes, diagnose };
+  H.pipeline = { NO_STRUCTURE, NO_FIXES, applyStructure, applyFixes, diagnose, findTotalRows };
 })((globalThis.Hub = globalThis.Hub || {}));

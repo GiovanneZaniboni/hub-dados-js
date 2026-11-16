@@ -222,6 +222,20 @@
       );
     }
 
+    /** Caixa de seleção por arquivo (só aparece quando há linhas desse tipo). */
+    function fileOption(f, key, count, what, verb) {
+      if (count === 0) return null;
+      return h(
+        'label',
+        { class: 'check chip-option' },
+        h('input', {
+          attrs: { type: 'checkbox', ...(f.options[key] ? { checked: '' } : {}) },
+          on: { change: (ev) => store.setFileOption(f.id, key, ev.currentTarget.checked) },
+        }),
+        ` ${verb} ${formatInt(count)} ${what}`,
+      );
+    }
+
     function renderFiles() {
       const { files } = store.getState();
       const computed = store.getComputed();
@@ -247,6 +261,8 @@
                   ),
                   h('button', { class: 'btn-ghost', text: 'Mapeamento', attrs: { type: 'button', 'aria-label': `Revisar o mapeamento de colunas de ${f.name}` }, on: { click: (ev) => openMappingDialog(store, f.id, ev.currentTarget) } }),
                   h('button', { class: 'btn-ghost', text: 'Remover', attrs: { type: 'button', 'aria-label': `Remover ${f.name} da fila` }, on: { click: () => store.removeFile(f.id) } }),
+                  fileOption(f, 'ignoreHidden', f.info.hidden.size, 'linha(s) oculta(s) por filtro', 'Ignorar'),
+                  fileOption(f, 'ignoreTotals', f.info.totals.size, 'linha(s) que parece(m) total', 'Ignorar'),
                 );
               }),
             ),

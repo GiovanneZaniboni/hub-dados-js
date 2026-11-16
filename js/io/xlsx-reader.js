@@ -74,8 +74,46 @@
     return n - 1;
   }
 
+  /**
+   * Células mescladas: o Excel guarda o valor só na célula do canto; as demais ficam vazias. Repete o valor nas linhas
+   * de baixo (mesclagens verticais, como uma "Região" que agrupa várias linhas). Mesclagens de uma linha só (títulos) são ignoradas.
+   * ranges: [[linha1, coluna1, linha2, coluna2], ...] com índices a partir de 0. Retorna { filled, maxCol }.
+   */
+  function fillMerged(grid, ranges, maxCol, limits) {
+    const MAX_FILLED = 5_000_000;
+    let filled = 0;
+    for (const [r1, c1, r2, c2] of ranges) {
+      if (r2 <= r1 || c2 >= limits.maxColumns || r2 > limits.maxRowsPerFile + 26) continue;
+      const top = grid[r1] ? grid[r1][c1] : undefined;
+      if (top === undefined || top === '') continue;
+      for (let r = r1 + 1; r <= r2; r++) {
+        const row = grid[r] ?? (grid[r] = []);
+        for (let c = c1; c <= c2; c++) {
+          if (row[c] === undefined || row[c] === '') {
+            if (++filled > MAX_FILLED) return { filled: MAX_FILLED, maxCol };
+            row[c] = top;
+          }
+        }
+        if (c2 + 1 > maxCol) maxCol = c2 + 1;
+      }
+    }
+    return { filled, maxCol };
+  }
+
+  /** Lê as áreas mescladas (<mergeCell ref="A3:A4"/>) do fim do XML da aba, onde o Excel as grava. */
+  function readMergeRanges(sheetBytes) {
+    const win = new TextDecoder('utf-8').decode(sheetBytes.subarray(Math.max(0, sheetBytes.length - 16 * 1024 * 1024)));
+    const ranges = [];
+    const re = /<(?:[\w.-]+:)?mergeCell\s[^>]*?ref="([A-Za-z]+)(\d+):([A-Za-z]+)(\d+)"/g;
+    let m;
+    while ((m = re.exec(win)) && ranges.length < 100_000) {
+      ranges.push([Number(m[2]) - 1, columnIndex(m[1]), Number(m[4]) - 1, columnIndex(m[3])]);
+    }
+    return ranges;
+  }
+
   /** grade (linhas esparsas) -> tabela: acha o cabeçalho, remove linhas vazias e aplica os limites. */
-  function gridToTable(grid, maxCol, limits) {
+  function gridToTable(grid, maxCol, limits, hiddenGrid) {
     // Cabeçalho = linha com mais células preenchidas nas primeiras 25 linhas.
     let headerAt = -1;
     let best = 0;
@@ -93,14 +131,18 @@
       limits.maxHeaderChars,
     );
     const rows = [];
+    const hidden = []; // posições (em `rows`) das linhas ocultas por filtro
     for (let i = headerAt + 1; i < grid.length; i++) {
       const r = grid[i];
       if (!r) continue;
       const out = Array.from({ length: maxCol }, (_, j) => r[j] ?? '');
-      if (out.some((x) => x !== '')) rows.push(out);
+      if (out.some((x) => x !== '')) {
+        if (hiddenGrid && hiddenGrid.has(i)) hidden.push(rows.length);
+        rows.push(out);
+      }
       if (rows.length > limits.maxRowsPerFile) throw new LimitError(`O arquivo excede o limite de ${limits.maxRowsPerFile} linhas.`);
     }
-    return { columns, rows };
+    return { columns, rows, hidden };
   }
 
   async function readXlsx(bytes, limits) {
@@ -164,6 +206,8 @@
     const grid = [];
     let maxCol = 0;
     let seq = 0;
+    const hiddenGrid = new Set();
+    let formulasWithoutValue = 0;
 
     // Uma linha por vez (sem montar a árvore da planilha inteira): essencial para arquivos com centenas de milhares de linhas.
     forEachElementInBytes(sheetBytes, 'row', (rowEl) => {
@@ -171,6 +215,8 @@
       const rowNo = Number(rowEl.getAttribute('r')) || seq;
       if (rowNo > limits.maxRowsPerFile + 26) throw new LimitError(`O arquivo excede o limite de ${limits.maxRowsPerFile} linhas.`);
       const cells = [];
+      const hiddenAttr = rowEl.getAttribute('hidden');
+      if (hiddenAttr === '1' || hiddenAttr === 'true') hiddenGrid.add(rowNo - 1);
 
       for (const c of Array.from(rowEl.children)) {
         if (c.localName !== 'c') continue;
@@ -183,6 +229,7 @@
         const type = c.getAttribute('t') ?? 'n';
         const vEl = Array.from(c.children).find((x) => x.localName === 'v');
         const v = vEl?.textContent ?? '';
+        if (!vEl && type !== 'inlineStr' && c.children.some((x) => x.localName === 'f')) formulasWithoutValue++;
         let text = '';
         if (type === 's') text = shared[Number(v)] ?? '';
         else if (type === 'inlineStr') {
@@ -200,11 +247,17 @@
       grid[rowNo - 1] = Array.from(cells, (x) => x ?? '');
     }, 'planilha');
 
-    const { columns, rows } = gridToTable(grid, maxCol, limits);
+    const merged = fillMerged(grid, readMergeRanges(sheetBytes), maxCol, limits);
+    maxCol = merged.maxCol;
+    const { columns, rows, hidden } = gridToTable(grid, maxCol, limits, hiddenGrid);
     const warnings = [];
+    if (merged.filled > 0) warnings.push(`${merged.filled} célula(s) de áreas mescladas foram preenchidas repetindo o valor.`);
+    if (formulasWithoutValue > 0) {
+      warnings.push(`${formulasWithoutValue} célula(s) têm fórmula sem valor calculado e ficaram vazias. Abra o arquivo no Excel e salve de novo para gravar os valores.`);
+    }
     if (sheets.length > 1) warnings.push(`O arquivo tem ${sheets.length} abas; foi usada a maior ("${chosen.name}").`);
-    return { columns, rows, warnings, sheetName: chosen.name };
+    return { columns, rows, warnings, sheetName: chosen.name, hidden };
   }
 
-  H.xlsxReader = { serialToIso, numberToText, columnIndex, readXlsx, gridToTable, isDateFormat, BUILTIN_DATE_FORMATS };
+  H.xlsxReader = { serialToIso, numberToText, columnIndex, readXlsx, gridToTable, fillMerged, isDateFormat, BUILTIN_DATE_FORMATS };
 })((globalThis.Hub = globalThis.Hub || {}));
